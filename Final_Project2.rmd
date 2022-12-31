@@ -1,0 +1,317 @@
+---
+title: "Prediction of The ALL-NBA First Team For 2021-2022 Regular Season"
+output: html_document
+---
+
+Group: DIS312 - Group 2
+
+Group Members: 
+**Tianwei Bao**, Lucy Chen, SHARVANI MANJAREKAR, GRANT SALZSIEDLER
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, fig.height = 4)
+library(tidyverse)
+library(lubridate)
+library(scales)
+# install.packages("kableExtra")
+library(kableExtra)
+```
+
+## Introduction
+
+The National Basketball Association (NBA) is a professional basketball league in North America. The league is composed of 30 teams (29 in the United States and 1 in Canada) and is one of the major professional sports leagues in the United States and Canada. It is the premier men’s professional basketball league in the world [1]. The All-NBA First Team is an annual National Basketball Association (NBA) honor bestowed on the best players in the league following every NBA season [2]. Specifically, two guards, two forwards, and one center will be selected as the final candidates for the All-NBA First Team for the NBA 2021-2022 regular season. For decades, the voting for the final candidates of the ALL-NBA first team is conducted by a global panel of sportswriters and broadcasters. The voting process is usually subjective and controversial. To make the selection process more transparent, we can use the Efficiency formula to quantify the performance of individual players, thus leading to a more fair result. Thesis: We will show that based on the Efficiency formula, 5 players of the ALL-NBA First Team for the 2021-2022 regular season are Luka Dončić(Guard), James Harden(Guard), Giannis Antetokounmpo(Forward), Domantas Sabonis(Forward), and Nikola Jokić(Center).
+
+
+## Background
+
+##### Dataset Description
+
+- Here is the link to the dataset https://www.kaggle.com/datasets/vivovinco/nba-player-stats 
+- This NBA dataset contains the detailed stats of all 598 NBA players per game for the 2021-2022 NBA regular season. The owner of this dataset on Kaggle used the Python library "Beautiful Soup" to scrape this official NBA dataset from the website called Basketball Reference, whose official NBA data was provided by SportRadar, which is the official statistics provider of the NBA. This official NBA dataset was recorded manually by the NBA officials with the assistance of the optical tracking system.
+
+##### Key Variables
+
+The variables used in the analysis are those are needed to compute the efficiency of individuals players, which are defined in the table below.
+
+```{r, echo = FALSE}
+my_tbl <- tibble::tribble(
+  ~"key Variable", ~Meaning,
+             "PTS", "Points per game",
+             "ORB", "Offensive rebounds per game",
+             "DRB", "Defensive rebounds per game",
+             "AST", "Assists per game",
+             "STL", "Steals per game",
+             "BLK", "Blocks per game",
+             "FGA", "Field goal attempts per game",
+             "FG_p", "Field goal percentage",
+             "FTA", "Free throw attempts per game",
+             "FT_p", "Free throw percentage",
+             "TOV", "Turnovers per game",
+             "GP", "Games played"
+  )
+
+require(knitr)
+kable(my_tbl, digits = 3, row.names = FALSE, align = "c",
+              caption = NULL)%>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+##### Efficiency Formula Description
+
+For the purpose of this project, the formula for calculating the efficiency of individual players **Efficiency = (PTS + REB + AST + STL + BLK − Missed FG − Missed FT - TO) / GP** will be used as the only criterion to compare the performance of any individual player from any position, thus predicting the best 5 players(2 guards, 2 forwards, and one center) that will be bestowed the honor of the ALL-NBA First Team for 2021-2022 regular season. It is also worth mentioning that to be qualified to compete for the All-NBA First Team, individual players must play more than 70% of games for the regular season. By using this approach, the performance of each player can be more easily be quantified, leading to a more transparent and fair process of selecting the final candidates for The All-NBA First Team.
+
+
+##### Some Focuses
+
+Our first focus is the distribution of efficiency of players in each position (Center, Forward, Guard). We found the 5 players that have the performance that could win them the honor of ALL-NBA First Team for the 2021-2022 regular season. 
+The second focus of the project is the relationship between efficiency and PTS(Points per game), and efficiency and AST(Assists per game). We used a scatter plot and a residual plot to explore the linear relationship between efficiency and each selected variable, while also including the calculated linear regression line. Then we split the scatter plot based on the position variable and display the regression lines in each categorical position. 
+
+
+## Analysis
+
+Firstly, a box plot is used to compare the efficiency distribution of all the qualified players (played at least 70 percent of the 82 games for the 2021-2022 NBA regular season) between each categorical position - Center, Forward, and Guard. By comparing the first quartile, second quartile(median), and third quartile of the three box plots, it is noticeable that the qualified players in the Center position generally have better efficiency than the qualified players in either the Forward or Guard position.
+
+The red dots as shown in the box plot are the outliers or extreme values of the efficiency distribution, representing player(s) who have the leading efficiency in each categorical position. Since the 5 red dots are qualified players who have the highest efficiency in each categorical position, they may be strong candidates for the ALL-NBA First Team for the 2021-2022 NBA regular season. Among the 5 players who have the efficiency that could win them the honor of ALL-NBA First Team for the 2021-2022 regular season, one of the Forwards has the highest efficiency of all.
+
+```{r, include = FALSE}
+df = read_delim("./21-22_NBA_Player_Stats.csv")
+player = df%>%
+  filter(Tm=="TOT")%>%
+  summarise(Player)
+player
+
+data1=df%>%
+  filter(Player %in% player$Player)%>%
+  filter(Tm=="TOT")
+
+data=df%>%
+  filter(!Player %in% player$Player)%>%
+  bind_rows(data1)
+data
+
+eff=data%>%
+  select(Player, Pos, PTS, ORB, DRB, AST,STL, BLK, FGA, FG, FTA, "FT%", FGA, "FG%", TOV, G)%>%
+  rename(FG_p="FG%", FT_p ="FT%")%>%
+  mutate(Missed_FG=FGA*(1-FG_p),Missed_FT= FTA*(1-FT_p),REB=ORB+DRB)%>%
+  mutate(EFF =(PTS + REB + AST + STL + BLK - Missed_FG - Missed_FT - TOV) / G)%>%
+  arrange(desc(EFF))%>%
+  filter(G>=0.7*82)
+  # mutate(case_when(
+  #   grepl('PG|SG', Pos)==TRUE~"PG/SG",
+  #   grepl('SF|PF', Pos)==TRUE~"SF/PF",
+  #   TRUE~"C"
+  # ))
+eff
+```
+
+
+```{r,echo = FALSE, include = FALSE}
+# PG/SG  SF/PF   C
+PG_SG=eff%>%
+  filter(grepl('PG|SG', Pos) )%>%
+  mutate(Position="Guard")
+PG_SG_2=PG_SG%>%
+  head(n = 2)
+  
+SF_PF=eff%>%
+  filter(grepl('SF|PF', Pos) )%>%
+  mutate(Position="Forward")
+SF_PF_2=SF_PF%>%
+  head(n = 2)
+
+C=eff%>%
+  filter(grepl('C', Pos))%>%
+  mutate(Position="Center")
+C_1=C%>%
+  head(n = 1)
+
+eff_top=rbind(PG_SG_2,SF_PF_2,C_1)
+
+eff_1=rbind(PG_SG,SF_PF,C)
+eff_top%>%
+  select(Player, Position,EFF)
+
+```
+
+
+```{r, echo = FALSE}
+# PG/SG  SF/PF   C
+ggplot()+
+  geom_point(data=eff_top,aes(x=Position, y=EFF),color="red", size=3)+
+  geom_boxplot(data=eff_1,aes(x=Position, y=EFF))+
+  xlab("Position") + ylab("Efficiency")
+
+```
+```{r, echo = FALSE}
+eff_top%>%
+  select(Player, Position,EFF)
+```
+
+
+Next, we try to explore the relationship between efficiency and each selected variable - PTS(Points per game), and AST(Assists per game). The triangles in different colors represent the potential final candidates of the All-NBA First Team in each categorical position. 
+
+#### Efficiency vs. PTS
+
+This plot displays the linear relationship between PTS and Efficiency of each qualified player. The red triangle, two green triangles, and two blue triangles represent the players with leading efficiency in the Center, Forward, and Guard position, respectively.
+
+```{r, echo = FALSE}
+#pts, ast, stl, blk
+fit = lm(EFF ~ PTS, data = eff_1)
+eff_1_PTS = eff_1 %>% 
+  mutate(fitted = fitted(fit),
+         residuals = residuals(fit))
+
+ggplot(eff_1)+geom_point(data=eff_1,aes(x=PTS, y=EFF), color="black")+
+  geom_point(data=eff_top,aes(x=PTS, y=EFF,color=Position),shape=17, size=4)+
+   geom_smooth(data=eff_1,aes(x=PTS, y=EFF),method="lm", 
+               se=FALSE)+
+  xlab("Points Per Game") + ylab("Efficiency")+ggtitle("Efficiency vs. PTS(Points Per Game) for All Qualified Players")
+```
+```{r, include = FALSE}
+# summary(lm(EFF ~ PTS, data = eff_1))
+```
+
+The linear regression line is EFF = 0.04492 + 0.01343*PTS with an R-squared of 0.7106524, suggesting that the points per game have a high level correlation with efficiency. For the residual plot, points are fairly evenly distributed with no clear pattern, suggesting the linear relationship between PTS and Efficiency is appropriate
+
+```{r, echo = FALSE}
+ggplot(eff_1_PTS, aes(x = PTS, y = residuals)) +
+  geom_point() + geom_hline(yintercept = 0) + 
+  geom_smooth(method = "lm", se=FALSE, color="blue")+ 
+  xlab("PTS") + ylab("Residuals")+
+  ggtitle("The Residual Distribution of Regression Analysis of PTS And Efficiency")
+# EFF = 0.01343*PTS+0.04492
+```
+
+```{r, include = FALSE}
+lm1 = lm(EFF ~ PTS, data = eff_1)
+r_square=summary(fit)$r.squared
+r_square
+```
+
+Next we use a hypothesis test to double-check if there is a strong linear relationship between PTS(Points Per Game) and Efficiency.
+$$
+H_0: \beta1 = 0\\
+H_1: \beta1 \neq 0
+$$
+```{r, echo = FALSE}
+# lm1 = lm(EFF ~ PTS, data = eff_1)
+tstat = (coef(summary(lm1))[2]-0)/(coef(summary(lm1))[2, "Std. Error"])
+# tstat
+p_value=pt(tstat, df=nrow(eff_1)-2, lower.tail=FALSE)*2
+p_value
+```
+
+Since our P-value = 6.359077e-58 which is smaller than 0.01 or 0.05, we reject the null hypothesis. Thus, we can conclude that there is a strong linear relationship between PTS and Efficiency
+
+After making sure the linear relationship between PTS and Efficiency for all qualified players is appropriate, we display the regression line by each categorical position. 
+
+```{r, echo = FALSE}
+ggplot()+geom_point(data=eff_1,aes(x=PTS, y=EFF), color="black")+
+  geom_point(data=eff_top,aes(x=PTS, y=EFF,color=Position),shape=17, size=4)+
+   geom_smooth(data=eff_1,aes(x=PTS, y=EFF),method="lm", 
+               se=FALSE)+facet_wrap(~Position)+
+  xlab("Points Per Game") + ylab("Efficiency")+
+  ggtitle("Efficiency vs. PTS(Points Per Game) for All Qualified Players By Position")
+```
+
+After comparing the estimated slope and R-squared of the regression line by each categorical position, the regression line for the Center Position has the highest slope(0.015994) and the regression line for the Guard position has the highest R-squared(0.8002)
+
+Thus, it is clear that for the Center position, PTS plays a more important role in terms of contributing to the efficiency of individual players. 
+There is also a strong linear relationship between PTS and Efficiency in the Guard position, which we have concluded from our R-squared value.
+```{r, echo = FALSE}
+summary(lm(EFF ~ PTS, data = C))
+summary(lm(EFF ~ PTS, data = SF_PF))
+summary(lm(EFF ~ PTS, data = PG_SG))
+```
+
+
+
+
+#### Efficiency vs. AST
+This plot displays the linear relationship between AST(assists per game) and the Efficiency of each qualified player. The red triangle, two green triangles, and two blue triangles represent the players with the leading efficiency in the Center, Forward, and Guard position, respectively.
+```{r, echo = FALSE}
+fit = lm(EFF ~ AST, data = eff_1)
+eff_1_AST = eff_1 %>% 
+  mutate(fitted = fitted(fit),
+         residuals = residuals(fit))
+
+ggplot()+geom_point(data=eff_1,aes(x=AST, y=EFF), color="black")+
+  geom_point(data=eff_top,aes(x=AST, y=EFF,color=Position),shape=17, size=4)+
+   geom_smooth(data=eff_1,aes(x=AST, y=EFF),method="lm", 
+               se=FALSE)+
+  xlab("Assists Per Game") + ylab("Efficiency") + ggtitle("Efficiency vs. AST(Assists Per Game) for All Qualified Players")
+```
+
+The linear regression line is EFF= 0.12393 + 0.03113*AST with an R-Squared of 0.4472978. For the residual plot, points are fairly evenly distributed with no clear pattern, suggesting the linear relationship between AST and Efficiency is appropriate. Since assists per game(AST) and efficiency have a relatively weak correlation, we use hypothesis test to double-check if there is a strong linear relationship between ATS(Assists Per Game) and Efficiency.
+
+```{r, echo = FALSE}
+ggplot(eff_1_AST, aes(x = AST, y = residuals)) +
+  geom_point() + geom_hline(yintercept = 0) + 
+  geom_smooth(method = "lm", se=FALSE, color="blue")+ 
+  xlab("Assists Per Game") + ylab("Residuals")+
+  ggtitle("The Residual Distribution of Regression Analysis of ATS and Efficiency")
+#EFF=0.03113*AST+0.12393
+```
+
+```{r, include = FALSE}
+lm1 = lm(EFF ~ AST, data = eff_1)
+r_square=summary(fit)$r.squared
+r_square
+```
+
+
+$$
+H_0: \beta1 = 0\\
+H_1: \beta1 \neq 0
+$$
+
+```{r, echo = FALSE}
+tstat = (coef(summary(lm1))[2]-0)/(coef(summary(lm1))[2, "Std. Error"])
+# tstat
+p_value=pt(tstat, df=nrow(eff_1)-2, lower.tail=FALSE)*2
+p_value
+```
+Since P-value = 1.360369e-28 which is smaller than 0.01 or 0.05, we reject the null hypothesis. Thus, we can conclude that there is a strong linear relationship between AST and Efficiency
+
+
+After making sure the linear relationship between AST and Efficiency for all qualified players is appropriate, we display the regression line in each categorical position. It is clear that for the forward position, AST plays a more important role in terms of contributing to the efficiency of individual players
+
+```{r, echo = FALSE}
+ggplot()+geom_point(data=eff_1,aes(x=AST, y=EFF), color="black")+
+  geom_point(data=eff_top,aes(x=AST, y=EFF,color=Position),shape=17, size=4)+
+   geom_smooth(data=eff_1,aes(x=AST, y=EFF),method="lm", 
+               se=FALSE)+facet_wrap(~Position)+
+  xlab("AST") + ylab("Efficiency")+
+  ggtitle("The Relationship Between AST And Efficiency By Position")
+```
+
+After comparing the estimated slope and R-squared of the regression line by each categorical position, the regression line for the Forward Position has the highest slope(0.056949) and the regression line for the Guard position has the highest R-squared(0.7412)
+
+Thus, it is clear that for the Forward position, AST plays the most important role in terms of contributing to the efficiency of individual players. And there is a slightly stronger linear relationship between AST and Efficiency in the Guard position than the others
+```{r, echo = FALSE}
+summary(lm(EFF ~ AST, data = C))
+summary(lm(EFF ~ AST, data = SF_PF))
+summary(lm(EFF ~ AST, data = PG_SG))
+```
+
+
+## Discussion
+Based on our data analysis on the raw NBA dataset, we visualized the overall efficiency distribution of all qualified players in each categorical position - Center, Forward, Guard. Centers have a relatively higher median, first quartile, and third quartile. 
+
+Then we prove that there is a strong linear relationships between PTS and Efficiency and between AST and Efficiency by using the hypothesis test with the comparison of the slope and R-Squared. 
+
+Since the regression line for the Center position has the highest slope and decent R-squared value, PTS seems to play a more important role in terms of contributing to the efficiency of Centers. Since the regression line for the Forward position has the highest slope and decent R-squared value, AST seems to play a more important role in terms of contributing to the efficiency of Forwards. However, the deductions may not be conclusive as we cannot eliminate the possibility that any difference observed may just be due to the lacking of variable scaling.
+
+Finally, we present our prediction of the ALL-NBA First Team for the 2021-2022 NBA regular season. Based on variables that affect the efficiency of individual players, 5 players of the ALL-NBA First Team for the 2021-2022 NBA regular season will be Luka Dončić(Guard), James Harden(Guard), Giannis Antetokounmpo(Forward), Domantas Sabonis(Forward), and Nikola Jokić(Center). Generally, the prediction makes sense based on our intuition about the players.
+
+Even though using the efficiency formula as the metric to quantify the performance of individual players can make the selecting process more transparent, the bias still exits when the efficiency formula is the only criterion. For future direction, we can consider using the alternative formula of calculating the performance of each individual player such as PER(player efficiency rating) developed by ESPN and PIR(Performance Index Rating) commonly used in EuroLeague. By averaging the performance score of individual players using the efficiency formula, PER, and PIR, the prediction could be more objective.
+
+```{r, echo = FALSE}
+eff_top%>%
+  select(Player, Position,EFF)
+```
+
+## References
+[1] https://en.wikipedia.org/wiki/National_Basketball_Association#cite_note-3
+
+[2] https://en.wikipedia.org/wiki/All-NBA_Team
